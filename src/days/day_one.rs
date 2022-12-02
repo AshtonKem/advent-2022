@@ -20,7 +20,7 @@ impl Elf {
     }
 }
 
-pub fn run(path: &PathBuf) -> u32 {
+pub fn run(path: &PathBuf, bonus: bool) -> u32 {
     let mut elves: Vec<Elf> = vec![];
     let mut current_elf = Elf::new();
     if let Ok(lines) = read_lines(path) {
@@ -37,11 +37,17 @@ pub fn run(path: &PathBuf) -> u32 {
                 }
             }
         }
-        elves
-            .iter()
-            .max_by_key(|elf| elf.total_calories())
-            .expect("Expected some elves to be provided")
-            .total_calories()
+        if bonus {
+            elves.sort_by_key(|elf| elf.total_calories());
+            elves.reverse();
+            elves.iter().take(3).map(|elf| elf.total_calories()).sum()
+        } else {
+            elves
+                .iter()
+                .max_by_key(|elf| elf.total_calories())
+                .expect("expected some elves to be provided")
+                .total_calories()
+        }
     } else {
         0
     }

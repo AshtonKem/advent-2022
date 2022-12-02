@@ -15,6 +15,8 @@ enum Commands {
     DayOne {
         #[arg(required = true)]
         path: PathBuf,
+        #[arg(short, long)]
+        bonus: bool
     },
 }
 
@@ -22,8 +24,8 @@ fn main() {
     let args = Args::parse();
 
     match &args.command {
-        Commands::DayOne { path } => {
-            println!("{}", days::day_one::run(path));
+        Commands::DayOne { path, bonus } => {
+            println!("{}", days::day_one::run(path, bonus.to_owned()));
         }
     }
 }
