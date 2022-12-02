@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{self, BufRead},
-    path::{Path, PathBuf},
+    path::{PathBuf},
 };
 
 trait Scorable {
@@ -56,7 +56,32 @@ impl Scorable for Outcome {
     }
 }
 
-fn outcome(our_hand: &Hand, their_hand: &Hand) -> Outcome{
+impl From<String> for Outcome {
+    fn from(str: String) -> Self {
+        match str.as_str() {
+            "X" => Outcome::Loss,
+            "Y" => Outcome::Draw,
+            "Z" => Outcome::Win,
+            _ => panic!("Unexpected input"),
+        }
+    }
+}
+
+fn calculate_hand(outcome: &Outcome, their_hand: &Hand) -> Hand {
+    match (outcome, their_hand) {
+        (Outcome::Win, Hand::Rock) => Hand::Paper,
+        (Outcome::Win, Hand::Paper) => Hand::Scissors,
+        (Outcome::Win, Hand::Scissors) => Hand::Rock,
+        (Outcome::Loss, Hand::Rock) => Hand::Scissors,
+        (Outcome::Loss, Hand::Paper) => Hand::Rock,
+        (Outcome::Loss, Hand::Scissors) => Hand::Paper,
+        (Outcome::Draw, Hand::Rock) => Hand::Rock,
+        (Outcome::Draw, Hand::Paper) => Hand::Paper,
+        (Outcome::Draw, Hand::Scissors) => Hand::Scissors,
+    }
+}
+
+fn outcome(our_hand: &Hand, their_hand: &Hand) -> Outcome {
     match (our_hand, their_hand) {
         (Hand::Rock, Hand::Paper) => Outcome::Loss,
         (Hand::Rock, Hand::Scissors) => Outcome::Win,
@@ -64,11 +89,11 @@ fn outcome(our_hand: &Hand, their_hand: &Hand) -> Outcome{
         (Hand::Paper, Hand::Scissors) => Outcome::Loss,
         (Hand::Scissors, Hand::Rock) => Outcome::Loss,
         (Hand::Scissors, Hand::Paper) => Outcome::Win,
-        _ => Outcome::Draw
+        _ => Outcome::Draw,
     }
 }
 
-pub fn run(path: &PathBuf) -> u32 {
+pub fn run(path: &PathBuf, bonus: bool) -> u32 {
     let mut score = 0;
     if let Ok(lines) = read_lines(path) {
         for maybe_line in lines {
@@ -76,10 +101,17 @@ pub fn run(path: &PathBuf) -> u32 {
                 let hands: Vec<&str> = line.split(" ").collect();
                 assert!(hands.len() == 2, "Expected only 2 hands per line");
                 let their_hand: Hand = hands.first().unwrap().to_string().into();
-                let our_hand: Hand = hands.last().unwrap().to_string().into();
-                let outcome = outcome(&our_hand, &their_hand);
-                score += our_hand.get_score();
-                score += outcome.get_score();
+                if bonus {
+                    let outcome: Outcome = hands.last().unwrap().to_string().into();
+                    let our_hand = calculate_hand(&outcome, &their_hand);
+                    score += our_hand.get_score();
+                    score += outcome.get_score();
+                } else {
+                    let our_hand: Hand = hands.last().unwrap().to_string().into();
+                    let outcome = outcome(&our_hand, &their_hand);
+                    score += our_hand.get_score();
+                    score += outcome.get_score();
+                }
             }
         }
     }

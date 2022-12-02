@@ -16,12 +16,14 @@ enum Commands {
         #[arg(required = true)]
         path: PathBuf,
         #[arg(short, long)]
-        bonus: bool
+        bonus: bool,
     },
     DayTwo {
         #[arg(required = true)]
-        path: PathBuf
-    }
+        path: PathBuf,
+        #[arg(short, long)]
+        bonus: bool,
+    },
 }
 
 fn main() {
@@ -31,8 +33,8 @@ fn main() {
         Commands::DayOne { path, bonus } => {
             println!("{}", days::day_one::run(path, bonus.to_owned()));
         }
-        Commands::DayTwo { path } => {
-            println!("{}", days::day_two::run(path))
-        },
+        Commands::DayTwo { path, bonus } => {
+            println!("{}", days::day_two::run(path, bonus.to_owned()))
+        }
     }
 }
