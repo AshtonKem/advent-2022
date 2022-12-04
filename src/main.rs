@@ -1,4 +1,5 @@
 mod days;
+pub mod utils;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
@@ -24,6 +25,12 @@ enum Commands {
         #[arg(short, long)]
         bonus: bool,
     },
+    DayThree {
+        #[arg(required = true)]
+        path: PathBuf,
+        #[arg(short, long)]
+        bonus: bool,
+    },
 }
 
 fn main() {
@@ -35,6 +42,9 @@ fn main() {
         }
         Commands::DayTwo { path, bonus } => {
             println!("{}", days::day_two::run(path, bonus.to_owned()))
+        }
+        Commands::DayThree { path, bonus } => {
+            println!("{}", days::day_three::run(path, bonus.to_owned()))
         }
     }
 }

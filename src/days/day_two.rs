@@ -1,8 +1,4 @@
-use std::{
-    fs::File,
-    io::{self, BufRead},
-    path::{PathBuf},
-};
+use std::path::PathBuf;
 
 trait Scorable {
     fn get_score(&self) -> u32;
@@ -95,7 +91,7 @@ fn outcome(our_hand: &Hand, their_hand: &Hand) -> Outcome {
 
 pub fn run(path: &PathBuf, bonus: bool) -> u32 {
     let mut score = 0;
-    if let Ok(lines) = read_lines(path) {
+    if let Ok(lines) = crate::utils::read_lines(path) {
         for maybe_line in lines {
             if let Ok(line) = maybe_line {
                 let hands: Vec<&str> = line.split(" ").collect();
@@ -116,9 +112,4 @@ pub fn run(path: &PathBuf, bonus: bool) -> u32 {
         }
     }
     score
-}
-
-fn read_lines(filename: &PathBuf) -> io::Result<io::Lines<io::BufReader<File>>> {
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
 }
