@@ -1,4 +1,5 @@
 use std::{collections::HashSet, iter::FromIterator, path::PathBuf};
+use itertools::Itertools;
 
 fn get_index(character: &char) -> u32 {
     let point = *character as u32;
@@ -19,6 +20,21 @@ fn overlap<'a>(first: &'a str, second: &'a str) -> HashSet<char> {
     first_chars.intersection(&second_chars).copied().collect()
 }
 
+fn find_badges(sacks: &Vec<&str>) -> HashSet<char> {
+    let mut result: HashSet<char> = sacks
+        .first()
+        .expect("Cannot have no input")
+        .chars()
+        .collect();
+    for sack in sacks {
+        result = result
+            .intersection(&sack.chars().collect())
+            .copied()
+            .collect()
+    }
+    result
+}
+
 fn process(input: &str) -> u32 {
     let mut score = 0;
     let (first_half, second_half) = split(input);
@@ -32,9 +48,20 @@ fn process(input: &str) -> u32 {
 pub fn run(path: &PathBuf, bonus: bool) -> u32 {
     let mut score = 0;
     if let Ok(lines) = crate::utils::read_lines(path) {
-        for maybe_line in lines {
-            if let Ok(line) = maybe_line {
-                score += process(&line);
+        if bonus {
+            for chunk in lines.into_iter().tuples::<(_,_,_)>() {
+                if let (Ok(one), Ok(two), Ok(three)) = chunk {
+                    let lines: Vec<&str> = [one.as_str(), two.as_str(), three.as_str()].to_vec();
+                    for badge in find_badges(&lines) {
+                        score += get_index(&badge);
+                    }
+                }
+            }
+        } else {
+            for maybe_line in lines {
+                if let Ok(line) = maybe_line {
+                    score += process(&line);
+                }
             }
         }
     }
@@ -74,5 +101,21 @@ mod tests {
     #[test]
     fn test_process() {
         assert_eq!(16, process("vJrwpWtwJgWrhcsFMMfFFhFp"));
+    }
+
+    #[test]
+    fn test_find_badges() {
+        let input_one = vec![
+            "vJrwpWtwJgWrhcsFMMfFFhFp",
+            "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL",
+            "PmmdzqPrVvPwwTWBwg",
+        ];
+        let input_two = vec![
+            "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn",
+            "ttgJtRGJQctTZtZT",
+            "CrZsJsPPZsGzwwsLwLmpwMDw",
+        ];
+        assert_eq!(HashSet::from(['r']), find_badges(&input_one));
+        assert_eq!(HashSet::from(['Z']), find_badges(&input_two));
     }
 }
