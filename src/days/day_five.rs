@@ -51,15 +51,33 @@ impl State {
         self.stacks.get_mut(stack).expect("Out of bounds stack").push(item);
     }
 
-    fn implement_move(&mut self, move_struct: &Move) {
-        let mut count = 0;
-        while count < move_struct.count {
-            if let Some(val) = self.stacks.get_mut(move_struct.from).expect("Out of range").pop() {
-                self.stacks.get_mut(move_struct.to).expect("Out of range").push(val);
-            }
+    fn implement_move(&mut self, move_struct: &Move, bonus: bool) {
+        if bonus {
+            let mut intermediate: Vec<char> = Vec::new();
+            let mut count = 0;
+            while count < move_struct.count {
+                if let Some(val) = self.stacks.get_mut(move_struct.from).expect("Out of range").pop() {
+                    intermediate.push(val);
+                }
 
-            count += 1;
+                count += 1;
+            }
+            while !intermediate.is_empty() {
+                if let Some(val) = intermediate.pop() {
+                    self.stacks.get_mut(move_struct.to).expect("Out of range").push(val);
+                }
+            }
+        } else {
+            let mut count = 0;
+            while count < move_struct.count {
+                if let Some(val) = self.stacks.get_mut(move_struct.from).expect("Out of range").pop() {
+                    self.stacks.get_mut(move_struct.to).expect("Out of range").push(val);
+                }
+
+                count += 1;
+            }
         }
+
     }
 
     fn final_state(&self) -> String {
@@ -96,7 +114,7 @@ impl FromStr for Move {
     }
 }
 
-pub fn run(path: &PathBuf, _bonus_: bool) -> String {
+pub fn run(path: &PathBuf, bonus: bool) -> String {
     let mut state = State::new();
     if let Ok(lines) = read_lines(path) {
         let mut initial_state: Vec<String> = Vec::new();
@@ -107,7 +125,7 @@ pub fn run(path: &PathBuf, _bonus_: bool) -> String {
                     finalized = true;
                     state = State::build(&mut initial_state);
                 } else if finalized {
-                    state.implement_move(Move::from_str(line.as_str()).expect("Invalid input").borrow());
+                    state.implement_move(Move::from_str(line.as_str()).expect("Invalid input").borrow(), bonus);
                 } else {
                     initial_state.push(line);
                 }
