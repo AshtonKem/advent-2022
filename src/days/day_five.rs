@@ -1,5 +1,5 @@
 use std::{
-    borrow::Borrow, cmp, collections::HashMap, num::ParseIntError, ops::RangeFrom, path::PathBuf,
+    borrow::Borrow, collections::HashMap, num::ParseIntError, ops::RangeFrom, path::PathBuf,
     str::FromStr,
 };
 
