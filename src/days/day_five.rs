@@ -1,23 +1,34 @@
-use std::{path::PathBuf, str::FromStr, num::ParseIntError, borrow::Borrow, collections::HashMap};
+use std::{
+    borrow::Borrow, cmp, collections::HashMap, num::ParseIntError, ops::RangeFrom, path::PathBuf,
+    str::FromStr,
+};
 
 use crate::utils::read_lines;
 
 #[derive(Debug)]
 struct State {
-    stacks: Vec<Vec<char>>
+    stacks: Vec<Vec<char>>,
 }
 
 impl State {
     fn new() -> State {
-        State{stacks: Vec::new()}
+        State { stacks: Vec::new() }
     }
 
     fn build(input: &mut Vec<String>) -> State {
         let mut state = State::new();
         let mut indices: HashMap<usize, usize> = HashMap::new();
-        for (i, character) in input.pop().expect("Expected column line").chars().enumerate() {
+        for (i, character) in input
+            .pop()
+            .expect("Expected column line")
+            .chars()
+            .enumerate()
+        {
             if character != ' ' {
-                let column: usize = character.to_string().parse().expect("Invalid column number");
+                let column: usize = character
+                    .to_string()
+                    .parse()
+                    .expect("Invalid column number");
                 indices.insert(i, column - 1);
             }
         }
@@ -48,36 +59,30 @@ impl State {
         while self.stacks.len() <= stack {
             self.add_stack();
         }
-        self.stacks.get_mut(stack).expect("Out of bounds stack").push(item);
+        self.stacks
+            .get_mut(stack)
+            .expect("Out of bounds stack")
+            .push(item);
     }
 
     fn implement_move(&mut self, move_struct: &Move, bonus: bool) {
-        if bonus {
-            let mut intermediate: Vec<char> = Vec::new();
-            let mut count = 0;
-            while count < move_struct.count {
-                if let Some(val) = self.stacks.get_mut(move_struct.from).expect("Out of range").pop() {
-                    intermediate.push(val);
-                }
-
-                count += 1;
-            }
-            while !intermediate.is_empty() {
-                if let Some(val) = intermediate.pop() {
-                    self.stacks.get_mut(move_struct.to).expect("Out of range").push(val);
-                }
-            }
-        } else {
-            let mut count = 0;
-            while count < move_struct.count {
-                if let Some(val) = self.stacks.get_mut(move_struct.from).expect("Out of range").pop() {
-                    self.stacks.get_mut(move_struct.to).expect("Out of range").push(val);
-                }
-
-                count += 1;
-            }
+        let from = self.stacks.get(move_struct.from).expect("Out of range");
+        let range: RangeFrom<usize> = RangeFrom {
+            start: from.len() - move_struct.count,
+        };
+        let mut intermediate: Vec<char> = self
+            .stacks
+            .get_mut(move_struct.from)
+            .expect("Out of range")
+            .drain(range)
+            .collect();
+        if !bonus {
+            intermediate.reverse();
         }
-
+        let target = self.stacks.get_mut(move_struct.to).expect("Out of range");
+        for val in intermediate {
+            target.push(val);
+        }
     }
 
     fn final_state(&self) -> String {
@@ -95,21 +100,22 @@ impl State {
 struct Move {
     from: usize,
     to: usize,
-    count: usize
+    count: usize,
 }
 
 impl FromStr for Move {
-    type Err= ParseIntError;
+    type Err = ParseIntError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (a,b,c) = s.strip_prefix("move ")
+        let (a, b, c) = s
+            .strip_prefix("move ")
             .and_then(|s| s.split_once(" from "))
-            .and_then(|(a, s)| s.split_once(" to ").map(|(b, c)| (a,b,c)))
+            .and_then(|(a, s)| s.split_once(" to ").map(|(b, c)| (a, b, c)))
             .unwrap();
-        Ok(Move{
+        Ok(Move {
             from: b.parse::<usize>()? - 1,
             to: c.parse::<usize>()? - 1,
-            count: a.parse::<usize>()?
+            count: a.parse::<usize>()?,
         })
     }
 }
@@ -125,7 +131,12 @@ pub fn run(path: &PathBuf, bonus: bool) -> String {
                     finalized = true;
                     state = State::build(&mut initial_state);
                 } else if finalized {
-                    state.implement_move(Move::from_str(line.as_str()).expect("Invalid input").borrow(), bonus);
+                    state.implement_move(
+                        Move::from_str(line.as_str())
+                            .expect("Invalid input")
+                            .borrow(),
+                        bonus,
+                    );
                 } else {
                     initial_state.push(line);
                 }
