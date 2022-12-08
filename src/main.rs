@@ -49,6 +49,12 @@ enum Commands {
         #[arg(short, long)]
         bonus: bool,
     },
+    DaySeven {
+        #[arg(required = true)]
+        path: PathBuf,
+        #[arg(short, long)]
+        bonus: bool,
+    },
 
 }
 
@@ -68,5 +74,6 @@ fn main() {
         Commands::DayFour { path, bonus } => println!("{}", days::day_four::run(path, bonus.to_owned())),
         Commands::DayFive { path, bonus } => println!("{}", days::day_five::run(path, bonus.to_owned())),
         Commands::DaySix { path, bonus } => println!("{}", days::day_six::run(path, bonus.to_owned())),
+        Commands::DaySeven { path, bonus } => println!("{}", days::day_seven::run(path, bonus.to_owned())),
     }
 }
