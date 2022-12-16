@@ -9,3 +9,4 @@ edition = "2021"
 clap = { version = "4.0.29", features = ["derive"] }
 reqwest = { version = "0.11", features = ["json"] }
 itertools = "0.10.5"
+array2d = "0.3.0"
