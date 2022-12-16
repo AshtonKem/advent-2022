@@ -59,6 +59,29 @@ fn calculate_signal_strength(state: &Vec<isize>, cycles: &Vec<usize>) -> isize {
     cycles.iter().map(|i| signal_strength(state, *i)).sum()
 }
 
+fn draw_screen(state: &Vec<isize>) -> String{
+    let mut output = String::with_capacity(40 * 6 + 5);
+    for index in 1..241 {
+
+        if index != 1 && index % 40 == 1 {
+            output.push_str("\n");
+        }
+        if let Some(register) = state.get(index - 1) {
+            let sprite_position = register + 1 % 40;
+            let column: isize = (index % 40) as isize;
+            if (sprite_position - column).abs() <= 1 {
+                output.push_str("#");
+            } else {
+                output.push_str(".");
+            }
+        } else {
+            output.push_str(".");
+        }
+    }
+    output
+
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -78,9 +101,41 @@ pub mod tests {
         run_instruction(&mut states, &Instruction::Noop);
         assert_eq!(420, calculate_signal_strength(&states, &vec![20]));
     }
+
+    #[test]
+    pub fn test_crt() {
+        let mut states = vec![1];
+        run_instruction(&mut states, &Instruction::AddX(15));
+        run_instruction(&mut states, &Instruction::AddX(-11));
+        run_instruction(&mut states, &Instruction::AddX(6));
+        run_instruction(&mut states, &Instruction::AddX(-3));
+        run_instruction(&mut states, &Instruction::AddX(5));
+        run_instruction(&mut states, &Instruction::AddX(-1));
+        run_instruction(&mut states, &Instruction::AddX(-8));
+        run_instruction(&mut states, &Instruction::AddX(13));
+        run_instruction(&mut states, &Instruction::AddX(4));
+        run_instruction(&mut states, &Instruction::Noop);
+        run_instruction(&mut states, &Instruction::AddX(-1));
+        run_instruction(&mut states, &Instruction::AddX(5));
+        run_instruction(&mut states, &Instruction::AddX(-1));
+        run_instruction(&mut states, &Instruction::AddX(5));
+        run_instruction(&mut states, &Instruction::AddX(-1));
+        run_instruction(&mut states, &Instruction::AddX(5));
+        run_instruction(&mut states, &Instruction::AddX(-1));
+        run_instruction(&mut states, &Instruction::AddX(5));
+        run_instruction(&mut states, &Instruction::AddX(-1));
+        run_instruction(&mut states, &Instruction::AddX(-35));
+        run_instruction(&mut states, &Instruction::AddX(1));
+        run_instruction(&mut states, &Instruction::AddX(24));
+        run_instruction(&mut states, &Instruction::AddX(-19));
+        run_instruction(&mut states, &Instruction::AddX(1));
+        run_instruction(&mut states, &Instruction::AddX(16));
+        run_instruction(&mut states, &Instruction::AddX(-11));
+        assert_eq!("##..##..##..##..##..##..##..##..##..##..", draw_screen(&states).lines().next().unwrap());
+    }
 }
 
-pub fn run(path: &PathBuf, _bonus_: bool) -> isize {
+pub fn run(path: &PathBuf, bonus: bool) -> String {
     let mut states = vec![1];
 
     if let Ok(lines) = read_lines(path) {
@@ -93,5 +148,9 @@ pub fn run(path: &PathBuf, _bonus_: bool) -> isize {
         }
     }
 
-    calculate_signal_strength(&states, &vec![20, 60, 100, 140, 180, 220])
+    if bonus {
+        draw_screen(&states)
+    } else {
+        calculate_signal_strength(&states, &vec![20, 60, 100, 140, 180, 220]).to_string()
+    }
 }
