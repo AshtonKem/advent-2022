@@ -1,4 +1,4 @@
-use std::{cmp, collections::HashSet, num::ParseIntError, path::PathBuf, str::FromStr};
+use std::{collections::HashSet, num::ParseIntError, path::PathBuf, str::FromStr};
 
 use crate::utils::read_lines;
 
@@ -87,11 +87,8 @@ impl FromStr for Move {
 }
 
 struct Bridge {
-    head_position: Coordinate,
-    tail_position: Coordinate,
+    knots: Vec<Coordinate>,
     past_tail_positions: HashSet<Coordinate>,
-    max_x: isize,
-    max_y: isize,
 }
 
 fn calculate_shift(head: isize, tail: isize) -> isize {
@@ -104,14 +101,33 @@ fn calculate_shift(head: isize, tail: isize) -> isize {
     }
 }
 
+fn calculate_new_position(knot: &Coordinate, following: &Coordinate) -> Coordinate {
+    let delta_x = knot.delta_x(following);
+    let delta_y = knot.delta_y(following);
+    if knot == following {
+        return following.clone();
+    } else if delta_x.abs() == 1 && delta_y == 0 {
+        return following.clone();
+    } else if delta_y.abs() == 1 && delta_x == 0 {
+        return following.clone();
+    } else if delta_x.abs() == 1 && delta_y.abs() == 1 {
+        return following.clone();
+    } else {
+        let x_shift = calculate_shift(knot.x, following.x);
+        let y_shift = calculate_shift(knot.y, following.y);
+        return following.shift(x_shift, y_shift);
+    }
+}
+
 impl Bridge {
-    fn new() -> Bridge {
+    fn new(knot_count: usize) -> Bridge {
+        let mut knots = Vec::new();
+        for _ in 0..knot_count {
+            knots.push(Coordinate::new(0, 0));
+        }
         Bridge {
-            head_position: Coordinate::new(0, 0),
-            tail_position: Coordinate::new(0, 0),
+            knots,
             past_tail_positions: HashSet::from_iter(vec![Coordinate::new(0, 0)]),
-            max_x: 0,
-            max_y: 0,
         }
     }
 
@@ -119,42 +135,38 @@ impl Bridge {
         self.past_tail_positions.len()
     }
 
-    fn move_tail(&mut self) {
-        let delta_x = self.head_position.delta_x(&self.tail_position);
-        let delta_y = self.head_position.delta_y(&self.tail_position);
-        if self.head_position == self.tail_position {
-            return;
-        } else if delta_x.abs() == 1 && delta_y == 0 {
-            return;
-        } else if delta_y.abs() == 1 && delta_x == 0 {
-            return;
-        } else if delta_x.abs() == 1 && delta_y.abs() == 1 {
-            return;
-        }
-        else {
-            let x_shift = calculate_shift(self.head_position.x, self.tail_position.x);
-            let y_shift = calculate_shift(self.head_position.y, self.tail_position.y);
-            self.tail_position = self.tail_position.shift(x_shift, y_shift);
-            self.past_tail_positions.insert(self.tail_position.clone());
-        }
-    }
-
-    fn update_maxes(&mut self) {
-        self.max_x = cmp::max(self.max_x, self.head_position.x);
-        self.max_y = cmp::max(self.max_y, self.head_position.y);
+    fn move_head(&mut self, x: isize, y: isize) {
+        let old_position = self.knots.first().expect("Non empty knots expected");
+        let new_position = old_position.shift(x, y);
+        self.knots[0] = new_position;
     }
 
     fn process_move(&mut self, move_struct: &Move) {
         for _ in 0..(move_struct.times) {
             match move_struct.direction {
-                Direction::Left => self.head_position = self.head_position.shift(-1, 0),
-                Direction::Right => self.head_position = self.head_position.shift(1, 0),
-                Direction::Up => self.head_position = self.head_position.shift(0, 1),
-                Direction::Down => self.head_position = self.head_position.shift(0, -1),
+                Direction::Left => self.move_head(-1, 0),
+                Direction::Right => self.move_head(1, 0),
+                Direction::Up => self.move_head(0, 1),
+                Direction::Down => self.move_head(0, -1),
             };
-            self.move_tail();
-            self.update_maxes();
+            for index in 1..(self.knots.len()) {
+                let previous = &self.knots[index - 1];
+                let following = &self.knots[index];
+                self.knots[index] = calculate_new_position(previous, following);
+            }
+
+            self.past_tail_positions
+                .insert(self.tail_position().clone());
         }
+    }
+
+    #[allow(dead_code)]
+    fn head_position(&self) -> &Coordinate {
+        self.knots.first().expect("Should have a first knot")
+    }
+
+    fn tail_position(&self) -> &Coordinate {
+        self.knots.last().expect("Should have more than 0 knots")
     }
 }
 
@@ -164,7 +176,7 @@ pub mod tests {
 
     #[test]
     pub fn test_move_simple() {
-        let mut bridge = Bridge::new();
+        let mut bridge = Bridge::new(2);
         assert_eq!(1, bridge.max_positions());
         bridge.process_move(&Move {
             direction: Direction::Up,
@@ -172,21 +184,21 @@ pub mod tests {
         });
         // Tail should not have moved yet
         assert_eq!(1, bridge.max_positions());
-        assert_eq!(Coordinate::new(0, 1), bridge.head_position);
-        assert_eq!(Coordinate::new(0, 0), bridge.tail_position);
+        assert_eq!(&Coordinate::new(0, 1), bridge.head_position());
+        assert_eq!(&Coordinate::new(0, 0), bridge.tail_position());
 
         bridge.process_move(&Move {
             direction: Direction::Up,
             times: 1,
         });
         assert_eq!(2, bridge.max_positions());
-        assert_eq!(Coordinate::new(0, 2), bridge.head_position);
-        assert_eq!(Coordinate::new(0, 1), bridge.tail_position);
+        assert_eq!(&Coordinate::new(0, 2), bridge.head_position());
+        assert_eq!(&Coordinate::new(0, 1), bridge.tail_position());
     }
 
     #[test]
     pub fn test_diagonal() {
-        let mut bridge = Bridge::new();
+        let mut bridge = Bridge::new(2);
         assert_eq!(1, bridge.max_positions());
         bridge.process_move(&Move {
             direction: Direction::Up,
@@ -198,21 +210,25 @@ pub mod tests {
         });
         // Tail should not have moved yet
         assert_eq!(1, bridge.max_positions());
-        assert_eq!(Coordinate::new(1, 1), bridge.head_position);
-        assert_eq!(Coordinate::new(0, 0), bridge.tail_position);
+        assert_eq!(&Coordinate::new(1, 1), bridge.head_position());
+        assert_eq!(&Coordinate::new(0, 0), bridge.tail_position());
 
         bridge.process_move(&Move {
             direction: Direction::Up,
             times: 1,
         });
         assert_eq!(2, bridge.max_positions());
-        assert_eq!(Coordinate::new(1, 2), bridge.head_position);
-        assert_eq!(Coordinate::new(1, 1), bridge.tail_position);
+        assert_eq!(&Coordinate::new(1, 2), bridge.head_position());
+        assert_eq!(&Coordinate::new(1, 1), bridge.tail_position());
     }
 }
 
-pub fn run(path: &PathBuf, _bonus_: bool) -> usize {
-    let mut bridge = Bridge::new();
+pub fn run(path: &PathBuf, bonus: bool) -> usize {
+    let mut bridge = if bonus {
+        Bridge::new(10)
+    } else {
+        Bridge::new(2)
+    };
     if let Ok(lines) = read_lines(path) {
         for maybe_line in lines {
             if let Ok(line) = maybe_line {
